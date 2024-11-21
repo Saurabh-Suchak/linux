@@ -69,6 +69,7 @@ sudo make install
 
 
 
+![image](https://github.com/user-attachments/assets/8a8ca22c-d028-491d-af5e-4a0065c01803)
 
 
 
