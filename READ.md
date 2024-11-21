@@ -1,3 +1,11 @@
+# Work done 
+
+**Saurabh:** Implemented the functionality for tracking KVM exits by modifying the exit handler in the kernel. Added logic to count and log the exit types during KVM operations.
+
+**Dharmesh:** Configured the kernel to enable KVM support and set up the environment for kernel compilation. mpiled the modified kernel, tested it, and verified that the exit profiling worked and solved issues during the kernel build process.
+
+
+
 # Steps to do 
 
 
