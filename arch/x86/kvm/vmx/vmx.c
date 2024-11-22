@@ -29,6 +29,9 @@
 #include <linux/tboot.h>
 #include <linux/trace_events.h>
 #include <linux/entry-kvm.h>
+#include <linux/printk.h>
+#define KVM_EXIT_MAX 100
+
 
 #include <asm/apic.h>
 #include <asm/asm.h>
@@ -72,6 +75,9 @@
 #include "smm.h"
 #include "vmx_onhyperv.h"
 #include "posted_intr.h"
+
+static unsigned long exit_counters[KVM_EXIT_MAX]; // Per-exit-type counters
+static unsigned long total_exits;   
 
 MODULE_AUTHOR("Qumranet");
 MODULE_DESCRIPTION("KVM support for VMX (Intel VT-x) extensions");
@@ -6627,23 +6633,66 @@ unexpected_vmexit:
 	return 0;
 }
 
+// int vmx_handle_exit(struct kvm_vcpu *vcpu, fastpath_t exit_fastpath)
+// {
+// 	int ret = __vmx_handle_exit(vcpu, exit_fastpath);
+
+// 	/*
+// 	 * Exit to user space when bus lock detected to inform that there is
+// 	 * a bus lock in guest.
+// 	 */
+// 	if (to_vmx(vcpu)->exit_reason.bus_lock_detected) {
+// 		if (ret > 0)
+// 			vcpu->run->exit_reason = KVM_EXIT_X86_BUS_LOCK;
+
+// 		vcpu->run->flags |= KVM_RUN_X86_BUS_LOCK;
+// 		return 0;
+// 	}
+// 	return ret;
+// }
+
 int vmx_handle_exit(struct kvm_vcpu *vcpu, fastpath_t exit_fastpath)
 {
-	int ret = __vmx_handle_exit(vcpu, exit_fastpath);
+    unsigned int exit_reason = vcpu->arch.exit_reason; // Retrieve the exit reason
+    int ret = __vmx_handle_exit(vcpu, exit_fastpath);
 
-	/*
-	 * Exit to user space when bus lock detected to inform that there is
-	 * a bus lock in guest.
-	 */
-	if (to_vmx(vcpu)->exit_reason.bus_lock_detected) {
-		if (ret > 0)
-			vcpu->run->exit_reason = KVM_EXIT_X86_BUS_LOCK;
+    /*
+     * Track KVM exit statistics.
+     */
+    static unsigned long exit_counters[KVM_EXIT_MAX] = {0}; // Per-exit-type counters
+    static unsigned long total_exits = 0;                   // Global total exit counter
 
-		vcpu->run->flags |= KVM_RUN_X86_BUS_LOCK;
-		return 0;
-	}
-	return ret;
+    total_exits++; // Increment the global exit counter
+
+    // Increment the counter for the specific exit type
+    if (exit_reason < KVM_EXIT_MAX) {
+        exit_counters[exit_reason]++;
+    }
+
+    // Print statistics every 10,000 exits
+    if (total_exits % 10000 == 0) {
+        printk(KERN_INFO "KVM Exit Statistics:\n");
+        for (int i = 0; i < KVM_EXIT_MAX; i++) {
+            if (exit_counters[i] > 0) {
+                printk(KERN_INFO "Exit Type %d: %lu\n", i, exit_counters[i]);
+            }
+        }
+    }
+
+    /*
+     * Preserve the original bus lock detection logic.
+     */
+    if (to_vmx(vcpu)->exit_reason.bus_lock_detected) {
+        if (ret > 0)
+            vcpu->run->exit_reason = KVM_EXIT_X86_BUS_LOCK;
+
+        vcpu->run->flags |= KVM_RUN_X86_BUS_LOCK;
+        return 0;
+    }
+
+    return ret; // Return the result of the original logic
 }
+
 
 /*
  * Software based L1D cache flush which is used when microcode providing
