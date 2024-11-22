@@ -76,6 +76,21 @@ sudo make modules_install \
 sudo make install
 
 
+# Frequency of exits
+
+The frequency of exits increased over time and at a stable rate during the run time of the vm. Howeveer a spike can be noticed when the operation involving I/O operations take place. The full VM boot entail approximately around 50,000 exits. The number of exits that happen during the boot time are much more than those occuring when the system is stable as during boot time, the system needs to initialise  and configure resources and hardware.
+
+# Most Frequent exits
+Some of the most frequent exits were I/O Instrucitn exits (KVM_EXIT_IO), the window interrupt exits and even the timer exits. 
+
+# Least Frequent exits
+The least frequent exit types were the CPUID exits( when guest vm requests features of virtualised processor) and the hypercalls.CPUID exits happen mainly during guest OS initialisation only. Triple faults are the most rare exit types as they appear only druing sever error in the the guest.
+
+
+
+
+
+
 
 ![image](https://github.com/user-attachments/assets/8a8ca22c-d028-491d-af5e-4a0065c01803)
 
